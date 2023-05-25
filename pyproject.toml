@@ -10,6 +10,7 @@ packages = [{include = "ebird_telegram_bot"}]
 python = "^3.11"
 python-telegram-bot = "^20.3"
 python-dotenv = "^1.0.0"
+requests = "^2.31.0"
 
 
 [build-system]
