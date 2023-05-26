@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dotenv import load_dotenv
 import os
 from telegram import Update
@@ -5,7 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 from ebird import checklist
 
-following_cache = {}
+following_cache = defaultdict(list)
 checklist_cache = {}
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -32,9 +33,16 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = f'Following {user_name} 🦜'
 
     # Store the user choice
-    following_cache[update.message.from_user.id] = ebird_user_id
-    print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
+    if ebird_user_id in following_cache[update.message.from_user.id]:
+        await update.message.reply_text(f"""
+            You are already following {user_name} 🦉
+            """)
+        return
+    else:
+        following_cache[update.message.from_user.id].append(ebird_user_id)
+        print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
 
+    # Display the latest checklist if any
     checklists = checklist.get_latest(ebird_user_id)
     if len(checklists) > 0:
         loc_id = checklists[0]['locId']
