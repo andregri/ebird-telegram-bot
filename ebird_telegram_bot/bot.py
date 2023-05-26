@@ -5,6 +5,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 from ebird import checklist
 
+following_cache = {}
+checklist_cache = {}
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'Hello {update.effective_user.first_name}')
@@ -27,7 +29,25 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
 
-    await update.message.reply_text(f'Following {user_name}')
+    msg = f'Following {user_name} 🦜'
+
+    # Store the user choice
+    following_cache[update.message.from_user.id] = ebird_user_id
+    print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
+
+    checklists = checklist.get_latest(ebird_user_id)
+    if len(checklists) > 0:
+        loc_id = checklists[0]['locId']
+        sub_id = checklists[0]['subId']
+        checklist_cache[ebird_user_id] = {'loc_id': loc_id, 'sub_id': sub_id}
+        print(f"{ebird_user_id} latest checklist id: {sub_id}")
+
+        date = checklists[0]['obsDt']
+        time = checklists[0]['obsTime']
+        msg += f"\n\n🔭 The latest checklist was on {date} at {time}"
+        msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+
+    await update.message.reply_text(msg)
 
 load_dotenv()
 
