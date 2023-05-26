@@ -10,7 +10,23 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'Hello {update.effective_user.first_name}')
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_name = checklist.user_display_name("MTI3NzgwMA")
+    if len(context.args) == 0:
+        await update.message.reply_text(f"""
+            You should provide a eBird user ID, for instance /follow MTI3NzgwMA
+            You find the ID of a user in the URL bar of your browser.
+            """)
+        return
+    
+    if len(context.args) > 1:
+        await update.message.reply_text(f"""
+            You should provide only one eBird user ID, for instance /follow MTI3NzgwMA
+            You find the ID of a user in the URL bar of your browser.
+            """)
+        return
+    
+    ebird_user_id = context.args[0]
+    user_name = checklist.user_display_name(ebird_user_id)
+
     await update.message.reply_text(f'Following {user_name}')
 
 load_dotenv()
