@@ -11,7 +11,9 @@ following_cache = defaultdict(list)
 checklist_cache = {}
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
+    await update.message.reply_text(
+        f'Hello {update.effective_user.first_name}',
+        disable_web_page_preview=True)
 
 def latest_checklist_message(ebird_user_id: str) -> str:
     # Display the latest checklist if any
@@ -77,7 +79,7 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.job_queue.run_daily(find_checklist, time=datetime.time(9, 0),chat_id=chat_id, name=str(chat_id), data=ebird_user_id)
     print(context.job_queue.jobs)
 
-    await update.message.reply_text(msg)
+    await update.message.reply_text(msg, disable_web_page_preview=True)
 
 load_dotenv()
 
