@@ -1,4 +1,5 @@
 from collections import defaultdict
+import datetime
 from dotenv import load_dotenv
 import os
 from telegram import Update
@@ -11,6 +12,32 @@ checklist_cache = {}
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'Hello {update.effective_user.first_name}')
+
+def latest_checklist_message(ebird_user_id: str) -> str:
+    # Display the latest checklist if any
+    msg = ""
+
+    checklists = checklist.get_latest(ebird_user_id)
+    if len(checklists) > 0:
+        loc_id = checklists[0]['locId']
+        sub_id = checklists[0]['subId']
+        checklist_cache[ebird_user_id] = {'loc_id': loc_id, 'sub_id': sub_id}
+        print(f"{ebird_user_id} latest checklist id: {sub_id}")
+
+        date = checklists[0]['obsDt']
+        time = checklists[0]['obsTime']
+        msg += f"\n\n🔭 The latest checklist was on {date} at {time}"
+        msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+    
+    return msg
+
+async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
+    msg = ""
+
+    ebird_user_id = context.job.data
+    msg += latest_checklist_message(ebird_user_id)
+
+    await context.bot.send_message(context.job.chat_id, text=msg)
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(context.args) == 0:
@@ -38,22 +65,17 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             You are already following {user_name} 🦉
             """)
         return
-    else:
-        following_cache[update.message.from_user.id].append(ebird_user_id)
-        print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
+    
+    following_cache[update.message.from_user.id].append(ebird_user_id)
+    print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
 
-    # Display the latest checklist if any
-    checklists = checklist.get_latest(ebird_user_id)
-    if len(checklists) > 0:
-        loc_id = checklists[0]['locId']
-        sub_id = checklists[0]['subId']
-        checklist_cache[ebird_user_id] = {'loc_id': loc_id, 'sub_id': sub_id}
-        print(f"{ebird_user_id} latest checklist id: {sub_id}")
+    # Show the latest checklist, if any
+    msg += latest_checklist_message(ebird_user_id)
 
-        date = checklists[0]['obsDt']
-        time = checklists[0]['obsTime']
-        msg += f"\n\n🔭 The latest checklist was on {date} at {time}"
-        msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+    # Find the latest checklist daily by adding a job to the queue
+    chat_id = update.effective_message.chat_id
+    context.job_queue.run_daily(find_checklist, time=datetime.time(9, 0),chat_id=chat_id, name=str(chat_id), data=ebird_user_id)
+    print(context.job_queue.jobs)
 
     await update.message.reply_text(msg)
 
