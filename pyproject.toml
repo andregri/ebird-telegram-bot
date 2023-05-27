@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ebird-telegram-bot"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["andregri <andrea.grillo96@live.com>"]
 readme = "README.md"
