@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime
 from dotenv import load_dotenv
 import os
+import pytz
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
@@ -76,7 +77,7 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # Find the latest checklist daily by adding a job to the queue
     chat_id = update.effective_message.chat_id
-    context.job_queue.run_daily(find_checklist, time=datetime.time(13,0),chat_id=chat_id, name=str(chat_id), data=ebird_user_id)
+    context.job_queue.run_daily(find_checklist, time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')),chat_id=chat_id, name=str(chat_id), data=ebird_user_id)
     print(context.job_queue.jobs)
 
     await update.message.reply_text(msg, disable_web_page_preview=True)
