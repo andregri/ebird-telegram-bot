@@ -29,7 +29,8 @@ def latest_checklist_message(ebird_user_id: str) -> str:
 
         date = checklists[0]['obsDt']
         time = checklists[0]['obsTime']
-        msg += f"\n\n🔭 The latest checklist was on {date} at {time}"
+        user_name = checklist.user_display_name(ebird_user_id)
+        msg += f"\n\n🔭 The latest checklist of {user_name} was on {date} at {time}"
         msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
     
     return msg
@@ -40,7 +41,7 @@ async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     ebird_user_id = context.job.data
     msg += latest_checklist_message(ebird_user_id)
 
-    await context.bot.send_message(context.job.chat_id, text=msg)
+    await context.bot.send_message(context.job.chat_id, text=msg, disable_web_page_preview=True)
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(context.args) == 0:
