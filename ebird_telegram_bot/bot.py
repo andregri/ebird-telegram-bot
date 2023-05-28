@@ -66,15 +66,17 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     msg = f'Following {user_name} 🦜'
 
+    cache_key = update.effective_message.chat_id
+
     # Store the user choice
-    if ebird_user_id in following_cache[update.message.from_user.id]:
+    if ebird_user_id in following_cache[cache_key]:
         await update.message.reply_text(dedent(f"""
             You are already following {user_name} 🦉
             """))
         return
     
-    following_cache[update.message.from_user.id].append(ebird_user_id)
-    print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
+    following_cache[cache_key].append(ebird_user_id)
+    print(f"follower: {update.message.from_user} (cache key: {cache_key}) following: {ebird_user_id}({user_name})")
 
     # Show the latest checklist, if any
     msg += latest_checklist_message(ebird_user_id)
@@ -94,7 +96,7 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
 
-    following_cache_key = update.message.from_user.id
+    following_cache_key = update.effective_message.chat_id
     following_list = following_cache[following_cache_key]
     print(f"Before: {following_list}")
 
