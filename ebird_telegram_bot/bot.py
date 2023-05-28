@@ -5,6 +5,7 @@ import os
 import pytz
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from textwrap import dedent
 
 from ebird import checklist
 
@@ -34,6 +35,20 @@ def latest_checklist_message(ebird_user_id: str) -> str:
     
     return msg
 
+def usage_msg(command, num_args) -> str:
+    if command == "follow":
+        if num_args == 0:
+            return dedent(f"""
+                You should provide a eBird user ID, You find the ID of a user in the URL bar of your browser.
+                For instance, /follow MTI3NzgwMA
+                """)
+
+        if num_args > 1:
+            return dedent(f"""
+                You should provide only one eBird user ID, You find the ID of a user in the URL bar of your browser.
+                For instance, /follow MTI3NzgwMA
+                """)
+
 async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = ""
 
@@ -43,19 +58,8 @@ async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     await context.bot.send_message(context.job.chat_id, text=msg)
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if len(context.args) == 0:
-        await update.message.reply_text(f"""
-            You should provide a eBird user ID, for instance /follow MTI3NzgwMA
-            You find the ID of a user in the URL bar of your browser.
-            """)
-        return
-    
-    if len(context.args) > 1:
-        await update.message.reply_text(f"""
-            You should provide only one eBird user ID, for instance /follow MTI3NzgwMA
-            You find the ID of a user in the URL bar of your browser.
-            """)
-        return
+    if len(context.args) != 1:
+        return await update.message.reply_text(usage_msg("follow", len(context.args)))
     
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
@@ -64,9 +68,9 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     # Store the user choice
     if ebird_user_id in following_cache[update.message.from_user.id]:
-        await update.message.reply_text(f"""
+        await update.message.reply_text(dedent(f"""
             You are already following {user_name} 🦉
-            """)
+            """))
         return
     
     following_cache[update.message.from_user.id].append(ebird_user_id)
