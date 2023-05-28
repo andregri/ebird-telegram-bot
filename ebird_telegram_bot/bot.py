@@ -13,8 +13,7 @@ checklist_cache = {}
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        f'Hello {update.effective_user.first_name}',
-        disable_web_page_preview=True)
+        f'Hello {update.effective_user.first_name}')
 
 def latest_checklist_message(ebird_user_id: str) -> str:
     # Display the latest checklist if any
@@ -41,7 +40,7 @@ async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     ebird_user_id = context.job.data
     msg += latest_checklist_message(ebird_user_id)
 
-    await context.bot.send_message(context.job.chat_id, text=msg, disable_web_page_preview=True)
+    await context.bot.send_message(context.job.chat_id, text=msg)
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if len(context.args) == 0:
