@@ -20,7 +20,16 @@ def latest_checklist_message(ebird_user_id: str) -> str:
     # Display the latest checklist if any
     msg = ""
 
-    checklists = checklist.get_latest(ebird_user_id)
+    try:
+        checklists = checklist.get_latest(ebird_user_id)
+    except Exception as e:
+        print(e)
+        return dedent(f"""
+            User not found or eBird is not responding now.
+            Make sure the ID is correct and try again later.
+            """)
+
+
     if len(checklists) > 0:
         loc_id = checklists[0]['locId']
         sub_id = checklists[0]['subId']
@@ -30,8 +39,12 @@ def latest_checklist_message(ebird_user_id: str) -> str:
         date = checklists[0]['obsDt']
         time = checklists[0]['obsTime']
         user_name = checklist.user_display_name(ebird_user_id)
-        msg += f"\n\n🔭 The latest checklist of {user_name} was on {date} at {time}"
-        msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+        if user_name:
+            msg += f"\n\n🔭 The latest checklist of {user_name} was on {date} at {time}"
+            msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+        else:
+            print(f"{ebird_user_id} not found on eBird")
+            return f"User {ebird_user_id} not found! Make sure the ID is correct."
     
     return msg
 
@@ -63,6 +76,8 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
+    if not user_name:
+        return await update.message.reply_text(f"User {ebird_user_id} not found! Make sure the ID is correct.")
 
     msg = f'Following {user_name} 🦜'
 
@@ -95,6 +110,8 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
+    if not user_name:
+        return await update.message.reply_text(f"User {ebird_user_id} not found! Make sure the ID is correct.")
 
     following_cache_key = update.effective_message.chat_id
     following_list = following_cache[following_cache_key]
