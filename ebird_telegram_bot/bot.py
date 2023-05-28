@@ -86,6 +86,40 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await update.message.reply_text(msg, disable_web_page_preview=True)
 
+async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if len(context.args) != 1:
+        return await update.message.reply_text(usage_msg("follow", len(context.args)))
+    
+    ebird_user_id = context.args[0]
+    user_name = checklist.user_display_name(ebird_user_id)
+
+    following_cache_key = update.message.from_user.id
+    following_list = following_cache[following_cache_key]
+    print(f"Before: {following_list}")
+
+    # Check if it was really followed
+    if not ebird_user_id in following_list:
+        msg = dedent(f"""
+            You are not following {user_name} 🦆
+            🦅 To start watching, use the command /follow
+            """)
+        return await update.message.reply_text(msg)
+
+    # Remove user from cache
+    following_list.remove(ebird_user_id)
+    following_cache[following_cache_key] = following_list
+    print(f"After {following_list}")
+    print(f"{following_cache_key} unfollowed {user_name}")
+
+    # Remove jobs from JobQueue
+    job_name = update.effective_message.chat_id
+    current_jobs = context.job_queue.get_jobs_by_name(job_name)
+    for job in current_jobs:
+        job.schedule_removal()
+    
+    msg = f'Unfollowed {user_name} 🪶'
+    return await update.message.reply_text(msg)
+
 load_dotenv()
 
 token = os.environ["TELEGRAM_API_KEY"]
@@ -93,5 +127,6 @@ app = ApplicationBuilder().token(token).build()
 
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("follow", follow))
+app.add_handler(CommandHandler("unfollow", unfollow))
 
 app.run_polling()
