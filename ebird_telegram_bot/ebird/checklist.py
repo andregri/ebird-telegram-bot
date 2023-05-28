@@ -15,6 +15,8 @@ def get_latest(user_id: str, region="world"):
         list of checklists info (max length is 10)
     """
     r = requests.get(f"https://ebird.org/prof/lists?r={region}&username={user_id}")
+    if r.status_code >= 400:
+        raise Exception(f"Error {r.status_code} from eBird: ID {user_id} may not exists or eBird is not working.")
     json_data = r.json()
     user_display_name_cache[user_id] = json_data[0]['userDisplayName']
 
@@ -32,6 +34,10 @@ def user_display_name(user_id) -> str:
         user display name
     """
     if not user_id in user_display_name_cache:
-        get_latest(user_id)
+        try:
+            get_latest(user_id)
+        except:
+            print(f"{user_id} not found on eBird")
+            return None
         
     return user_display_name_cache[user_id]

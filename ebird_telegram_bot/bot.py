@@ -5,6 +5,7 @@ import os
 import pytz
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from textwrap import dedent
 
 from ebird import checklist
 
@@ -13,14 +14,22 @@ checklist_cache = {}
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        f'Hello {update.effective_user.first_name}',
-        disable_web_page_preview=True)
+        f'Hello {update.effective_user.first_name}')
 
 def latest_checklist_message(ebird_user_id: str) -> str:
     # Display the latest checklist if any
     msg = ""
 
-    checklists = checklist.get_latest(ebird_user_id)
+    try:
+        checklists = checklist.get_latest(ebird_user_id)
+    except Exception as e:
+        print(e)
+        return dedent(f"""
+            User not found or eBird is not responding now.
+            Make sure the ID is correct and try again later.
+            """)
+
+
     if len(checklists) > 0:
         loc_id = checklists[0]['locId']
         sub_id = checklists[0]['subId']
@@ -29,10 +38,29 @@ def latest_checklist_message(ebird_user_id: str) -> str:
 
         date = checklists[0]['obsDt']
         time = checklists[0]['obsTime']
-        msg += f"\n\n🔭 The latest checklist was on {date} at {time}"
-        msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+        user_name = checklist.user_display_name(ebird_user_id)
+        if user_name:
+            msg += f"\n\n🔭 The latest checklist of {user_name} was on {date} at {time}"
+            msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
+        else:
+            print(f"{ebird_user_id} not found on eBird")
+            return f"User {ebird_user_id} not found! Make sure the ID is correct."
     
     return msg
+
+def usage_msg(command, num_args) -> str:
+    if command == "follow":
+        if num_args == 0:
+            return dedent(f"""
+                You should provide a eBird user ID, You find the ID of a user in the URL bar of your browser.
+                For instance, /follow MTI3NzgwMA
+                """)
+
+        if num_args > 1:
+            return dedent(f"""
+                You should provide only one eBird user ID, You find the ID of a user in the URL bar of your browser.
+                For instance, /follow MTI3NzgwMA
+                """)
 
 async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = ""
@@ -43,44 +71,75 @@ async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     await context.bot.send_message(context.job.chat_id, text=msg)
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if len(context.args) == 0:
-        await update.message.reply_text(f"""
-            You should provide a eBird user ID, for instance /follow MTI3NzgwMA
-            You find the ID of a user in the URL bar of your browser.
-            """)
-        return
-    
-    if len(context.args) > 1:
-        await update.message.reply_text(f"""
-            You should provide only one eBird user ID, for instance /follow MTI3NzgwMA
-            You find the ID of a user in the URL bar of your browser.
-            """)
-        return
+    if len(context.args) != 1:
+        return await update.message.reply_text(usage_msg("follow", len(context.args)))
     
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
+    if not user_name:
+        return await update.message.reply_text(f"User {ebird_user_id} not found! Make sure the ID is correct.")
 
     msg = f'Following {user_name} 🦜'
 
+    cache_key = update.effective_message.chat_id
+
     # Store the user choice
-    if ebird_user_id in following_cache[update.message.from_user.id]:
-        await update.message.reply_text(f"""
+    if ebird_user_id in following_cache[cache_key]:
+        await update.message.reply_text(dedent(f"""
             You are already following {user_name} 🦉
-            """)
+            """))
         return
     
-    following_cache[update.message.from_user.id].append(ebird_user_id)
-    print(f"follower: {update.message.from_user} following: {ebird_user_id}({user_name})")
+    following_cache[cache_key].append(ebird_user_id)
+    print(f"follower: {update.message.from_user} (cache key: {cache_key}) following: {ebird_user_id}({user_name})")
 
     # Show the latest checklist, if any
     msg += latest_checklist_message(ebird_user_id)
 
     # Find the latest checklist daily by adding a job to the queue
     chat_id = update.effective_message.chat_id
-    context.job_queue.run_daily(find_checklist, time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')),chat_id=chat_id, name=str(chat_id), data=ebird_user_id)
-    print(context.job_queue.jobs)
+    job_name = f"{chat_id}{ebird_user_id}"
+    context.job_queue.run_daily(find_checklist, time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')), chat_id=chat_id, name=job_name, data=ebird_user_id)
+    print(f"scheduled jobs: {[job.name for job in context.job_queue.jobs()]}")
 
     await update.message.reply_text(msg, disable_web_page_preview=True)
+
+async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if len(context.args) != 1:
+        return await update.message.reply_text(usage_msg("follow", len(context.args)))
+    
+    ebird_user_id = context.args[0]
+    user_name = checklist.user_display_name(ebird_user_id)
+    if not user_name:
+        return await update.message.reply_text(f"User {ebird_user_id} not found! Make sure the ID is correct.")
+
+    following_cache_key = update.effective_message.chat_id
+    following_list = following_cache[following_cache_key]
+    print(f"Before: {following_list}")
+
+    # Check if it was really followed
+    if not ebird_user_id in following_list:
+        msg = dedent(f"""
+            You are not following {user_name} 🦆
+            🦅 To start watching, use the command /follow
+            """)
+        return await update.message.reply_text(msg)
+
+    # Remove user from cache
+    following_list.remove(ebird_user_id)
+    following_cache[following_cache_key] = following_list
+    print(f"After {following_list}")
+    print(f"{following_cache_key} unfollowed {user_name}")
+
+    # Remove jobs from JobQueue
+    job_name = f"{update.effective_message.chat_id}{ebird_user_id}"
+    current_jobs = context.job_queue.get_jobs_by_name(job_name)
+    for job in current_jobs:
+        job.schedule_removal()
+        print(f"Scheduled removal of job {job_name}")
+    
+    msg = f'Unfollowed {user_name} 🪶'
+    return await update.message.reply_text(msg)
 
 load_dotenv()
 
@@ -89,5 +148,6 @@ app = ApplicationBuilder().token(token).build()
 
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("follow", follow))
+app.add_handler(CommandHandler("unfollow", unfollow))
 
 app.run_polling()
