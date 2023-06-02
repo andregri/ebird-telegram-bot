@@ -75,7 +75,7 @@ class Database:
             True if chat_id is already following ebird_id, False otherwise
         """
         res = self.cur.execute(f"""
-            SELECT chat_id FROM f{self.FOLLOWERS_TABLE}
+            SELECT chat_id FROM {self.FOLLOWERS_TABLE}
             WHERE chat_id = {chat_id}
             AND ebird_user = '{ebird_id}'
         """)
