@@ -1,7 +1,51 @@
 import logging
+import requests
 import sqlite3
 
 logger = logging.getLogger(__name__)
+
+
+def restore(url: str, db_filename: str):
+    """Donwloads a backup of the sqlite db from an online url
+    
+    Args:
+        url (str): url where to download the db
+        db_filename (str): name of the file where to save the db   
+    """
+    headers = {
+        'User-Agent': 'curl/7.79.1', # free.keep.sh only receive files uploaded with curl
+    }
+    r = requests.get(url, allow_redirects=True, headers=headers)
+    if r.ok:
+        open(db_filename, 'wb').write(r.content)
+        logger.info(f"{db_filename} backup downloaded from {url}")
+    else:
+        logger.error(f"couldn't download backup from {url}")
+
+
+def backup(db_filename: str) -> str:
+    """
+    Upload a backup of db_filename to https://free.keep.sh
+
+    Args:
+        db_filename (str): name of file to backup online
+
+    Returns:
+        url to download the file if successful, None otherwise
+    """
+
+    headers = {
+        'User-Agent': 'curl/7.79.1', # free.keep.sh only receive files uploaded with curl
+    }
+    data = open(db_filename, 'rb').read()
+    r = requests.put(f'https://free.keep.sh/{db_filename}', data=data, headers=headers)
+    if r.ok:
+        backup_url = r.text
+        logger.info(f"ok to upload backup of {db_filename} at {backup_url}")
+        return backup_url
+    
+    logger.error(f"failed to upload backup of {db_filename}: {r.status_code} {r.text}")
+    return None
 
 
 class Database:

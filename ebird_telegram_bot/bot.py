@@ -11,6 +11,8 @@ import db
 from ebird import checklist
 
 
+ADMIN_CHAT_ID = 141295559
+
 checklist_cache = {}
 
 
@@ -107,6 +109,22 @@ def generic_error_msg() -> str:
         Sorry my circuit is broken 🤖
         I couldn't complete your request
         """)
+
+
+async def backup_db(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Upload the db backup and send the url to admin"""
+    url = db.backup('ebird.db')
+    if url:
+        return await context.bot.send_message(
+            context.job.chat_id,
+            text=f"db backup ok at {url} ⭐"
+        )
+    
+    return await context.bot.send_message(
+            context.job.chat_id,
+            text=f"failed to upload db backup ⛈"
+        )
+
 
 async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = ""
@@ -208,6 +226,11 @@ async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 load_dotenv()
 
+# download a db backup if present
+db_backup_url = os.getenv("DB_BACKUP_URL")
+if db_backup_url:
+    db.restore(db_backup_url, 'ebird.db')
+
 # init db
 bot_db = db.Database()
 
@@ -220,5 +243,13 @@ app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("follow", follow))
 app.add_handler(CommandHandler("unfollow", unfollow))
 app.add_handler(CommandHandler("list", list_following))
+
+# upload a db backup every day
+app.job_queue.run_daily(
+    backup_db,
+    time=datetime.time(7, 45, tzinfo=pytz.timezone('Europe/Rome')),
+    chat_id=ADMIN_CHAT_ID,
+    name='db_backup'
+)
 
 app.run_polling()
