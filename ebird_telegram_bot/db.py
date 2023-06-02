@@ -30,9 +30,13 @@ class Database:
         # Create scheduled jobs table
         self.cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {self.JOBS_TABLE}(
-            next_schedule TEXT,
-            follower_id INTEGER,
-            FOREIGN KEY(follower_id) REFERENCES followers(id))
+            chat_id INTEGER NOT NULL,
+            ebird_user CHAR NOT NULL,
+            scheduled_time TEXT,
+            FOREIGN KEY(chat_id, ebird_user)
+                REFERENCES {self.FOLLOWERS_TABLE}(chat_id, ebird_user)
+                ON DELETE CASCADE
+        )
         """)
 
         logger.info("completed init of sqlite db")
