@@ -32,7 +32,7 @@ def latest_checklist_message(ebird_user_id: str) -> str:
     try:
         checklists = checklist.get_latest(ebird_user_id)
     except Exception as e:
-        logger.error(e)
+        logger.info(e)
         return dedent(f"""
             User not found or eBird is not responding now.
             Make sure the ID is correct and try again later.
