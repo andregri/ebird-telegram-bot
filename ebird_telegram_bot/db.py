@@ -88,3 +88,17 @@ class Database:
             WHERE chat_id = {chat_id}
         """)
         return [item[0] for item in res.fetchall()]
+
+    def all(self) -> list:
+        """
+        Get all rows from following table
+
+        Returns:
+            list of all (chat_id, ebird_user_id) in db
+        """
+        res = self.cur.execute(f"""
+            SELECT chat_id, ebird_user FROM {self.FOLLOWERS_TABLE}
+        """)
+        all = res.fetchall()
+        logger.info(f"fetched {len(all)} rows")
+        return all
