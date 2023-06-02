@@ -25,6 +25,37 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         f'Hello {update.effective_user.first_name}')
 
+def schedule_job(job_queue: ContextTypes.DEFAULT_TYPE.job_queue, chat_id: int, ebird_user_id: str):
+    """
+    Schedule a job in the queue
+
+    Args:
+        context (ContextTypes.DEFAULT_TYPE.job_queue): Telegram job queue
+        chat_id (int): id of the Telegram chat
+        ebird_user_id (str): id of the eBird user
+    """
+    job_name = f"{chat_id}{ebird_user_id}"
+    job_queue.run_daily(
+        find_checklist,
+        time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')),
+        chat_id=chat_id, name=job_name,
+        data=ebird_user_id
+    )
+    logger.info(f"scheduled job {job_name}")
+
+
+def init_job_queue(job_queue: ContextTypes.DEFAULT_TYPE.job_queue) -> None:
+    """
+    When the bot starts, schedule a job for each item in db
+    """
+    all = bot_db.all()
+    for item in all:
+        chat_id, ebird_user_id = item
+        schedule_job(job_queue=job_queue, chat_id=chat_id, ebird_user_id=ebird_user_id)
+    
+    logger.info(f"scheduled {len(all)} jobs")
+
+
 def latest_checklist_message(ebird_user_id: str) -> str:
     # Display the latest checklist if any
     msg = ""
@@ -117,10 +148,8 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Show the latest checklist, if any
     msg += latest_checklist_message(ebird_user_id)
 
-    # Find the latest checklist daily by adding a job to the queue
-    job_name = f"{chat_id}{ebird_user_id}"
-    context.job_queue.run_daily(find_checklist, time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')), chat_id=chat_id, name=job_name, data=ebird_user_id)
-    logger.info(f"scheduled jobs: {[job.name for job in context.job_queue.jobs()]}")
+    # Schedule a daily job that finds the latest checklist
+    schedule_job(job_queue=context.job_queue, chat_id=chat_id, ebird_user_id=ebird_user_id)
 
     await update.message.reply_text(msg, disable_web_page_preview=True)
 
@@ -184,6 +213,8 @@ bot_db = db.Database()
 
 token = os.environ["TELEGRAM_API_KEY"]
 app = ApplicationBuilder().token(token).build()
+
+init_job_queue(app.job_queue)
 
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("follow", follow))
