@@ -167,7 +167,7 @@ async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 load_dotenv()
 
 # init db
-db.init()
+bot_db = db.Database()
 
 token = os.environ["TELEGRAM_API_KEY"]
 app = ApplicationBuilder().token(token).build()
