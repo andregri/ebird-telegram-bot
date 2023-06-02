@@ -1,6 +1,7 @@
 from collections import defaultdict
 import datetime
 from dotenv import load_dotenv
+import logging
 import os
 import pytz
 from telegram import Update
@@ -11,6 +12,14 @@ from ebird import checklist
 
 following_cache = defaultdict(list)
 checklist_cache = {}
+
+
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
