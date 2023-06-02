@@ -1,6 +1,12 @@
+import logging
 import requests
 
 user_display_name_cache = {}
+
+
+# Enable logging
+logger = logging.getLogger(__name__)
+
 
 def get_latest(user_id: str, region="world"):
     """
@@ -37,7 +43,7 @@ def user_display_name(user_id) -> str:
         try:
             get_latest(user_id)
         except:
-            print(f"{user_id} not found on eBird")
+            logger.info(f"{user_id} not found on eBird")
             return None
         
     return user_display_name_cache[user_id]
