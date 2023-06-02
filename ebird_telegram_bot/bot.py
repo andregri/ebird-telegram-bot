@@ -71,6 +71,12 @@ def usage_msg(command, num_args) -> str:
                 You should provide only one eBird user ID, You find the ID of a user in the URL bar of your browser.
                 For instance, /follow MTI3NzgwMA
                 """)
+        
+def generic_error_msg() -> str:
+    return dedent("""
+        Sorry my circuit is broken 🤖
+        I couldn't complete your request
+        """)
 
 async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = ""
@@ -81,6 +87,9 @@ async def find_checklist(context: ContextTypes.DEFAULT_TYPE) -> None:
     await context.bot.send_message(context.job.chat_id, text=msg)
 
 async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_message.chat_id
+    logger.info(f"{chat_id} /follow")
+
     if len(context.args) != 1:
         return await update.message.reply_text(usage_msg("follow", len(context.args)))
     
@@ -91,23 +100,25 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     msg = f'Following {user_name} 🦜'
 
-    cache_key = update.effective_message.chat_id
-
-    # Store the user choice
-    if ebird_user_id in following_cache[cache_key]:
+    # Check if already following
+    if bot_db.is_following(chat_id=chat_id, ebird_id=ebird_user_id):
         await update.message.reply_text(dedent(f"""
             You are already following {user_name} 🦉
             """))
         return
-    
-    following_cache[cache_key].append(ebird_user_id)
-    logger.info(f"follower: {update.message.from_user} (cache key: {cache_key}) following: {ebird_user_id}({user_name})")
+
+    # Store the user choice into db
+    try:
+        bot_db.insert_follower(chat_id=chat_id, ebird_id=ebird_user_id)
+        logger.info(f"{chat_id} -> {ebird_user_id} ({user_name})")
+    except Exception as e:
+        logger.info(e)
+        return await update.message.reply_text(generic_error_msg())
 
     # Show the latest checklist, if any
     msg += latest_checklist_message(ebird_user_id)
 
     # Find the latest checklist daily by adding a job to the queue
-    chat_id = update.effective_message.chat_id
     job_name = f"{chat_id}{ebird_user_id}"
     context.job_queue.run_daily(find_checklist, time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')), chat_id=chat_id, name=job_name, data=ebird_user_id)
     logger.info(f"scheduled jobs: {[job.name for job in context.job_queue.jobs()]}")
