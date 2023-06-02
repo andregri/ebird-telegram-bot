@@ -37,3 +37,28 @@ class Database:
 
         logger.info("completed init of sqlite db")
 
+
+    def insert_follower(self, chat_id: int, ebird_id: str) -> None:
+        """
+        Insert a follower into the "followers" table
+
+        Args:
+            chat_id (int): the Telegram chat_id which issued the /follow command
+            ebird_id (str): the eBird user id to follow
+        """
+        self.cur.execute(f"INSERT INTO {self.FOLLOWERS_TABLE} VALUES ({chat_id}, '{ebird_id}')")
+        self.con.commit()
+
+    def delete_follower(self, chat_id: int, ebird_id: str) -> None:
+        """
+        Delete a follower from "followers" table
+
+        Args:
+            chat_id (int): the Telegram chat_id which issued the /follow command
+            ebird_id (str): the eBird user id to follow
+        """
+        self.cur.execute(f"""
+            DELETE FROM {self.FOLLOWERS_TABLE}
+            WHERE chat_id = {chat_id} AND ebird_user = '{ebird_id}'
+        """)
+        self.con.commit()
