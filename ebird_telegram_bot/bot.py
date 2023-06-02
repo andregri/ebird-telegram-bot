@@ -126,31 +126,34 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(msg, disable_web_page_preview=True)
 
 async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_message.chat_id
+    logger.info(f"{chat_id} /unfollow")
+
+    # unfollow command needs one argument
     if len(context.args) != 1:
         return await update.message.reply_text(usage_msg("follow", len(context.args)))
     
+    # ebird id doesn't exist
     ebird_user_id = context.args[0]
     user_name = checklist.user_display_name(ebird_user_id)
     if not user_name:
         return await update.message.reply_text(f"User {ebird_user_id} not found! Make sure the ID is correct.")
 
-    following_cache_key = update.effective_message.chat_id
-    following_list = following_cache[following_cache_key]
-    logger.info(f"Before: {following_list}")
-
     # Check if it was really followed
-    if not ebird_user_id in following_list:
+    if not bot_db.is_following(chat_id=chat_id, ebird_id=ebird_user_id):
         msg = dedent(f"""
             You are not following {user_name} 🦆
             🦅 To start watching, use the command /follow
             """)
         return await update.message.reply_text(msg)
 
-    # Remove user from cache
-    following_list.remove(ebird_user_id)
-    following_cache[following_cache_key] = following_list
-    logger.info(f"After {following_list}")
-    logger.info(f"{following_cache_key} unfollowed {user_name}")
+    # Remove user from db
+    try:
+        bot_db.delete_follower(chat_id=chat_id, ebird_id=ebird_user_id)
+        logger.info(f"{chat_id} unfollowed {ebird_user_id} ({user_name})")
+    except Exception as e:
+        logger.info(e)
+        return await update.message.reply_text(generic_error_msg())
 
     # Remove jobs from JobQueue
     job_name = f"{update.effective_message.chat_id}{ebird_user_id}"
