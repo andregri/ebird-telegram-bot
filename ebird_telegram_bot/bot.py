@@ -1,4 +1,3 @@
-from collections import defaultdict
 import datetime
 from dotenv import load_dotenv
 import logging
@@ -11,7 +10,7 @@ from textwrap import dedent
 import db
 from ebird import checklist
 
-following_cache = defaultdict(list)
+
 checklist_cache = {}
 
 
