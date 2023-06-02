@@ -32,7 +32,7 @@ def latest_checklist_message(ebird_user_id: str) -> str:
     try:
         checklists = checklist.get_latest(ebird_user_id)
     except Exception as e:
-        print(e)
+        logger.error(e)
         return dedent(f"""
             User not found or eBird is not responding now.
             Make sure the ID is correct and try again later.
@@ -43,7 +43,7 @@ def latest_checklist_message(ebird_user_id: str) -> str:
         loc_id = checklists[0]['locId']
         sub_id = checklists[0]['subId']
         checklist_cache[ebird_user_id] = {'loc_id': loc_id, 'sub_id': sub_id}
-        print(f"{ebird_user_id} latest checklist id: {sub_id}")
+        logger.info(f"{ebird_user_id} latest checklist id: {sub_id}")
 
         date = checklists[0]['obsDt']
         time = checklists[0]['obsTime']
@@ -52,7 +52,7 @@ def latest_checklist_message(ebird_user_id: str) -> str:
             msg += f"\n\n🔭 The latest checklist of {user_name} was on {date} at {time}"
             msg += f"\n🦩 Check it at https://ebird.org/checklist/{sub_id}"
         else:
-            print(f"{ebird_user_id} not found on eBird")
+            logger.info(f"{ebird_user_id} not found on eBird")
             return f"User {ebird_user_id} not found! Make sure the ID is correct."
     
     return msg
@@ -100,7 +100,7 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     
     following_cache[cache_key].append(ebird_user_id)
-    print(f"follower: {update.message.from_user} (cache key: {cache_key}) following: {ebird_user_id}({user_name})")
+    logger.info(f"follower: {update.message.from_user} (cache key: {cache_key}) following: {ebird_user_id}({user_name})")
 
     # Show the latest checklist, if any
     msg += latest_checklist_message(ebird_user_id)
@@ -109,7 +109,7 @@ async def follow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_message.chat_id
     job_name = f"{chat_id}{ebird_user_id}"
     context.job_queue.run_daily(find_checklist, time=datetime.time(13, 30, tzinfo=pytz.timezone('Europe/Rome')), chat_id=chat_id, name=job_name, data=ebird_user_id)
-    print(f"scheduled jobs: {[job.name for job in context.job_queue.jobs()]}")
+    logger.info(f"scheduled jobs: {[job.name for job in context.job_queue.jobs()]}")
 
     await update.message.reply_text(msg, disable_web_page_preview=True)
 
@@ -124,7 +124,7 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     following_cache_key = update.effective_message.chat_id
     following_list = following_cache[following_cache_key]
-    print(f"Before: {following_list}")
+    logger.info(f"Before: {following_list}")
 
     # Check if it was really followed
     if not ebird_user_id in following_list:
@@ -137,15 +137,15 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Remove user from cache
     following_list.remove(ebird_user_id)
     following_cache[following_cache_key] = following_list
-    print(f"After {following_list}")
-    print(f"{following_cache_key} unfollowed {user_name}")
+    logger.info(f"After {following_list}")
+    logger.info(f"{following_cache_key} unfollowed {user_name}")
 
     # Remove jobs from JobQueue
     job_name = f"{update.effective_message.chat_id}{ebird_user_id}"
     current_jobs = context.job_queue.get_jobs_by_name(job_name)
     for job in current_jobs:
         job.schedule_removal()
-        print(f"Scheduled removal of job {job_name}")
+        logger.info(f"Scheduled removal of job {job_name}")
     
     msg = f'Unfollowed {user_name} 🪶'
     return await update.message.reply_text(msg)
