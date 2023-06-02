@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from textwrap import dedent
 
+import db
 from ebird import checklist
 
 following_cache = defaultdict(list)
@@ -164,6 +165,9 @@ async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return await update.message.reply_text(msg)
 
 load_dotenv()
+
+# init db
+db.init()
 
 token = os.environ["TELEGRAM_API_KEY"]
 app = ApplicationBuilder().token(token).build()
