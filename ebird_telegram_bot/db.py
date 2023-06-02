@@ -22,9 +22,9 @@ class Database:
         # Create followers table
         self.cur.execute(f"""
         CREATE TABLE IF NOT EXISTS {self.FOLLOWERS_TABLE}(
-            id INTEGER PRIMARY KEY,
-            chat_id INTEGER,
-            ebird_user CHAR)
+            chat_id INTEGER NOT NULL,
+            ebird_user CHAR NOT NULL,
+            PRIMARY KEY(chat_id, ebird_user))
         """)
 
         # Create scheduled jobs table
@@ -62,3 +62,21 @@ class Database:
             WHERE chat_id = {chat_id} AND ebird_user = '{ebird_id}'
         """)
         self.con.commit()
+
+    def is_following(self, chat_id: int, ebird_id: str) -> bool:
+        """
+        Check if a chat_id is already following an eBird user
+
+        Args:
+            chat_id (int): the Telegram chat_id which issued the /follow command
+            ebird_id (str): the eBird user id to follow
+
+        Returns:
+            True if chat_id is already following ebird_id, False otherwise
+        """
+        res = self.cur.execute(f"""
+            SELECT chat_id FROM f{self.FOLLOWERS_TABLE}
+            WHERE chat_id = {chat_id}
+            AND ebird_user = '{ebird_id}'
+        """)
+        return res.fetchone() is not None
