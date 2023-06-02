@@ -141,6 +141,16 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = f'Unfollowed {user_name} 🪶'
     return await update.message.reply_text(msg)
 
+async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_message.chat_id
+    if not chat_id in following_cache:
+        return await update.message.reply_text(f"You are not following anyone 🦅")
+    
+    msg = "You are following:\n"
+    for following in following_cache[chat_id]:
+        msg += f"📌 {checklist.user_display_name(following)} ({following})\n"
+    return await update.message.reply_text(msg)
+
 load_dotenv()
 
 token = os.environ["TELEGRAM_API_KEY"]
@@ -149,5 +159,6 @@ app = ApplicationBuilder().token(token).build()
 app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("follow", follow))
 app.add_handler(CommandHandler("unfollow", unfollow))
+app.add_handler(CommandHandler("list", list_following))
 
 app.run_polling()
