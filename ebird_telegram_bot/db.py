@@ -54,8 +54,8 @@ class Database:
         Delete a follower from "followers" table
 
         Args:
-            chat_id (int): the Telegram chat_id which issued the /follow command
-            ebird_id (str): the eBird user id to follow
+            chat_id (int): the Telegram chat_id
+            ebird_id (str): the eBird user id
         """
         self.cur.execute(f"""
             DELETE FROM {self.FOLLOWERS_TABLE}
@@ -68,8 +68,8 @@ class Database:
         Check if a chat_id is already following an eBird user
 
         Args:
-            chat_id (int): the Telegram chat_id which issued the /follow command
-            ebird_id (str): the eBird user id to follow
+            chat_id (int): the Telegram chat_id
+            ebird_id (str): the eBird user id
 
         Returns:
             True if chat_id is already following ebird_id, False otherwise
@@ -80,3 +80,19 @@ class Database:
             AND ebird_user = '{ebird_id}'
         """)
         return res.fetchone() is not None
+
+    def list_followings(self, chat_id: int) -> list:
+        """
+        Return a list of followed birdwatchers by chat_id
+
+        Args:
+            chat_id (int): the Telegram chat_id
+
+        Returns:
+            list of ebird user ids
+        """
+        res = self.cur.execute(f"""
+            SELECT ebird_user FROM {self.FOLLOWERS_TABLE}
+            WHERE chat_id = {chat_id}
+        """)
+        return [item[0] for item in res.fetchall()]

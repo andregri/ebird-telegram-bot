@@ -167,14 +167,14 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_message.chat_id
-
     logger.info(f"{chat_id} /list")
 
-    if not chat_id in following_cache:
+    followings = bot_db.list_followings(chat_id=chat_id)
+    if len(followings) == 0:
         return await update.message.reply_text(f"You are not following anyone 🦅")
     
     msg = "You are following:\n"
-    for following in following_cache[chat_id]:
+    for following in followings:
         msg += f"📌 {checklist.user_display_name(following)} ({following})\n"
     return await update.message.reply_text(msg)
 
