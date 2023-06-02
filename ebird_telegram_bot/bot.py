@@ -152,6 +152,9 @@ async def unfollow(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.effective_message.chat_id
+
+    logger.info(f"{chat_id} /list")
+
     if not chat_id in following_cache:
         return await update.message.reply_text(f"You are not following anyone 🦅")
     
