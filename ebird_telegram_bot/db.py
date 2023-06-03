@@ -1,6 +1,8 @@
 # Copyright: (c) 2023, Andrea Grillo
 # GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+import aiofiles
+import aiohttp
 import logging
 import requests
 import sqlite3
@@ -26,7 +28,7 @@ def restore(url: str, db_filename: str):
         logger.error(f"couldn't download backup from {url}")
 
 
-def backup(db_filename: str) -> str:
+async def backup(db_filename: str, **kwargs) -> str:
     """
     Upload a backup of db_filename to https://free.keep.sh
 
@@ -38,17 +40,20 @@ def backup(db_filename: str) -> str:
     """
 
     headers = {
-        'User-Agent': 'curl/7.79.1', # free.keep.sh only receive files uploaded with curl
+        # free.keep.sh only receive files uploaded from user agent "curl"
+        'User-Agent': 'curl/7.79.1',
     }
-    data = open(db_filename, 'rb').read()
-    r = requests.put(f'https://free.keep.sh/{db_filename}', data=data, headers=headers)
-    if r.ok:
-        backup_url = r.text
-        logger.info(f"ok to upload backup of {db_filename} at {backup_url}")
-        return backup_url
-    
-    logger.error(f"failed to upload backup of {db_filename}: {r.status_code} {r.text}")
-    return None
+    async with aiofiles.open(db_filename, 'rb') as file:
+        data = await file.read()
+        async with aiohttp.ClientSession() as session:
+            r = await session.request(method='PUT', url=f'https://free.keep.sh/{db_filename}', data=data, headers=headers, **kwargs)
+            if r.ok:
+                backup_url = await r.text()
+                logger.info(f"ok to upload backup of {db_filename} at {backup_url}")
+                return backup_url
+            
+            logger.error(f"failed to upload backup of {db_filename}: {r.status_code} {r.text}")
+            return None
 
 
 class Database:

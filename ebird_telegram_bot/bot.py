@@ -119,7 +119,7 @@ def generic_error_msg() -> str:
 
 async def backup_db(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Upload the db backup and send the url to admin"""
-    url = db.backup('ebird.db')
+    url = await db.backup('ebird.db')
     if url:
         return await context.bot.send_message(
             context.job.chat_id,
