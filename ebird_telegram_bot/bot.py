@@ -123,12 +123,14 @@ async def backup_db(context: ContextTypes.DEFAULT_TYPE) -> None:
     if url:
         return await context.bot.send_message(
             context.job.chat_id,
-            text=f"db backup ok at {url} ⭐"
+            text=f"db backup ok at {url} ⭐",
+            disable_web_page_preview=True,
         )
     
     return await context.bot.send_message(
             context.job.chat_id,
-            text=f"failed to upload db backup ⛈"
+            text=f"failed to upload db backup ⛈",
+            disable_web_page_preview=True,
         )
 
 
