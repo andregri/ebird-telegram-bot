@@ -1,3 +1,6 @@
+# Copyright: (c) 2023, Andrea Grillo
+# GNU General Public License v3.0+ (see LICENSE or https://www.gnu.org/licenses/gpl-3.0.txt)
+
 import datetime
 from dotenv import load_dotenv
 import logging
@@ -116,16 +119,18 @@ def generic_error_msg() -> str:
 
 async def backup_db(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Upload the db backup and send the url to admin"""
-    url = db.backup('ebird.db')
+    url = await db.backup('ebird.db')
     if url:
         return await context.bot.send_message(
             context.job.chat_id,
-            text=f"db backup ok at {url} ⭐"
+            text=f"db backup ok at {url} ⭐",
+            disable_web_page_preview=True,
         )
     
     return await context.bot.send_message(
             context.job.chat_id,
-            text=f"failed to upload db backup ⛈"
+            text=f"failed to upload db backup ⛈",
+            disable_web_page_preview=True,
         )
 
 
