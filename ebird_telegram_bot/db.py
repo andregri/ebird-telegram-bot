@@ -49,7 +49,7 @@ async def backup(db_filename: str, **kwargs) -> str:
             r = await session.request(method='PUT', url=f'https://free.keep.sh/{db_filename}', data=data, headers=headers, **kwargs)
             if r.ok:
                 backup_url = await r.text()
-                logger.info(f"ok to upload backup of {db_filename} at {backup_url}")
+                logger.info(f"uploaded backup of {db_filename} at {backup_url}: {len(data)} bytes")
                 return backup_url
             
             logger.error(f"failed to upload backup of {db_filename}: {r.status_code} {r.text}")
