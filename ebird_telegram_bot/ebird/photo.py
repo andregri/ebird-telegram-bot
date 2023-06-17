@@ -1,7 +1,7 @@
 import requests
 
 
-def get_latest_uploaded() -> list:
+def search() -> list:
     """
     Get the latest uploaded pictures.
 
@@ -82,5 +82,24 @@ def download(assetId: int, resolution: int=1800) -> str:
     return photo_path
 
 
-#data = get_latest_uploaded()
+def common_names_set(search_result: dict) -> set:
+    """
+    Create a set of common names from a search result
+
+    Args:
+        search_result: a list of json objects from search()
+    
+    Return:
+        a set of strings
+    """
+    common_names = set()
+    for obj in search_result:
+        common_name = obj['taxonomy']['comName']
+        common_names.add(common_name)
+
+    return common_names
+
+
+#data = search()
 #download(data[0]['assetId'])
+#print(common_names_set(data))
