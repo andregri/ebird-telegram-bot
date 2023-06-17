@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 import logging
 import os
 import pytz
-from telegram import Update
+import random
+from telegram import Update, Poll
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from textwrap import dedent
 
 import db
-from ebird import checklist
+from ebird import checklist, photo
 
 
 ADMIN_CHAT_ID = 141295559
@@ -232,6 +233,42 @@ async def list_following(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         msg += f"📌 {checklist.user_display_name(following)} ({following})\n"
     return await update.message.reply_text(msg)
 
+
+async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = update.effective_message.chat_id
+    logger.info(f"{chat_id} /quiz")
+
+    # search a list of possible images
+    search_data = photo.search()
+    common_names = photo.common_names_set(search_result=search_data)
+
+    # get common name of the bird and download image
+    photo_index = random.randrange(len(search_data))
+    latest_photo_id = search_data[photo_index]['assetId']
+    correct_answer = search_data[photo_index]['taxonomy']['comName']
+    common_names.remove(correct_answer)
+    photo_path = photo.download(latest_photo_id)
+
+    # shuffle the list of possible answers
+    q = 'What bird is this?'
+    answers = [common_names.pop() for _ in range(3)]
+    answers.append(correct_answer)
+    random.shuffle(answers)
+    
+    await context.bot.send_photo(
+        chat_id, photo=open(photo_path, 'rb')
+    )
+    os.remove(photo_path)
+    
+    return await context.bot.send_poll(
+        chat_id=chat_id,
+        question=q,
+        options=answers,
+        type=Poll.QUIZ,
+        correct_option_id=answers.index(correct_answer),
+    )
+
+
 load_dotenv()
 
 # download a db backup if present
@@ -251,6 +288,7 @@ app.add_handler(CommandHandler("hello", hello))
 app.add_handler(CommandHandler("follow", follow))
 app.add_handler(CommandHandler("unfollow", unfollow))
 app.add_handler(CommandHandler("list", list_following))
+app.add_handler(CommandHandler("quiz", quiz))
 
 # upload a db backup every day
 app.job_queue.run_daily(
