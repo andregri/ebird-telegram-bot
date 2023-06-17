@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/andregri/ebird-telegram-bot/compare/v1.0.0...v1.1.0) (2023-06-17)
+
+
+### Features
+
+* create a set of common names from search result ([0d08cc8](https://github.com/andregri/ebird-telegram-bot/commit/0d08cc85e1b12070fdb195edc3b904bb453c1488))
+* download photos ([a1a9d86](https://github.com/andregri/ebird-telegram-bot/commit/a1a9d863cdee3aa29689ec13fee4ee3c64d0e543))
+* quiz poll to identify bird from image ([990575e](https://github.com/andregri/ebird-telegram-bot/commit/990575e909de984df0ffe4af768766250cdcbbab))
+* send a custom message to all users once the bot restarts ([7afd31c](https://github.com/andregri/ebird-telegram-bot/commit/7afd31c7b9a8410f71b3285d7e92ead8ac66a69f))
+
 ## 1.0.0 (2023-06-03)
 
 
