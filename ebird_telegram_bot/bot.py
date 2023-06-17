@@ -269,6 +269,37 @@ async def quiz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+async def send_custom_msg(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Send a custom message to a user
+    """
+    chat_id = context.job.chat_id
+    logger.info(f"send custom msg to {chat_id}")
+
+    msg = context.job.data
+
+    return await context.bot.send_message(
+        chat_id=chat_id,
+        text=msg,
+        disable_web_page_preview=True,
+    )
+
+def broadcast_custom_msg_once(job_queue: ContextTypes.DEFAULT_TYPE.job_queue, msg: str):
+    # get all users
+    chat_ids = bot_db.all_chat_ids()
+    
+    for chat_id in chat_ids:
+        job_name = f"{chat_id}-release-info"
+        job_queue.run_once(
+            send_custom_msg,
+            chat_id=chat_id,
+            when=20,
+            name=job_name,
+            data=msg,
+        )
+        logger.info(f"scheduled job {job_name}")
+
+
 load_dotenv()
 
 # download a db backup if present
@@ -282,6 +313,12 @@ bot_db = db.Database()
 token = os.environ["TELEGRAM_API_KEY"]
 app = ApplicationBuilder().token(token).build()
 
+# send release message to all users
+broadcast_custom_msg_once(app.job_queue, dedent("""
+    🚀 try the new /quiz feature of the bot!
+"""))
+
+# init queue of jobs that send periodic updates of checklists
 init_job_queue(app.job_queue)
 
 app.add_handler(CommandHandler("hello", hello))

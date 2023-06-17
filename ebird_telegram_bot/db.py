@@ -154,3 +154,14 @@ class Database:
         all = res.fetchall()
         logger.info(f"fetched {len(all)} rows")
         return all
+    
+    def all_chat_ids(self) -> list:
+        """
+        Returns a list of chat ids that are using the bot
+        """
+        res = self.cur.execute(f"""
+            SELECT DISTINCT chat_id FROM {self.FOLLOWERS_TABLE}
+        """)
+        all = res.fetchall()
+        logger.info(f"fetched {len(all)} rows")
+        return [item[0] for item in all]
